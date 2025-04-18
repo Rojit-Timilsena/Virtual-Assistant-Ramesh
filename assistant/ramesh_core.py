@@ -34,10 +34,21 @@ def configure():
     try:
         # Simple test to the Gemini API
         import requests
-        url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent"
+        url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
         params = {"key": gemini_api_key}
         headers = {"Content-Type": "application/json"}
-        data = {"contents": [{"parts":[{"text": "test"}]}]}
+        data = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": "Test message"}]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 100
+            }
+        }
         
         test_response = requests.post(url, params=params, headers=headers, json=data, timeout=5)
         if test_response.status_code == 200:
@@ -87,6 +98,13 @@ def processCommand(c, speak_enabled=True):
     # Handle identity questions directly
     if any(phrase in c for phrase in ["what's your name", "what is your name", "who are you", "your identity", "introduce yourself"]):
         response_text = "My name is Ramesh. I'm your personal assistant, ready to help you with information, tasks, and whatever else you need."
+        if speak_enabled:
+            speak(response_text)
+        return response_text
+        
+    # Handle weather-related queries directly
+    if any(phrase in c for phrase in ["weather", "temperature", "forecast", "climate", "rain", "sunny", "cloudy", "how hot", "how cold"]):
+        response_text = "I'm sorry, I don't have access to real-time weather data. You could check a weather website or app like Weather.com, AccuWeather, or your phone's built-in weather app for current conditions."
         if speak_enabled:
             speak(response_text)
         return response_text
@@ -210,16 +228,25 @@ def processCommand(c, speak_enabled=True):
                 "contents": [
                     {
                         "role": "user",
-                        "parts":[{"text": c}]
+                        "parts": [{"text": c}]
                     }
                 ],
-                "system_instruction": {
+                "systemInstruction": {
                     "parts": [
-                        {"text": "You are Ramesh, a helpful personal assistant. Your name is Ramesh. When asked about your identity, always introduce yourself as Ramesh, not as a language model, AI, or any other name like Bard or Gemini. You are created to assist users with various tasks including answering questions, providing information, and performing other helpful actions."}
+                        {"text": "You are Ramesh, a helpful personal assistant. Your name is Ramesh. When asked about your identity, always introduce yourself as Ramesh, not as a language model, AI, or any other name like Bard or Gemini. You are created to assist users with various tasks including answering questions, providing information, and performing other helpful actions. When asked about the weather, explain that you don't have access to real-time weather data, but you can suggest weather websites or apps the user can check."}
                     ]
                 },
-                "generation_config": {
-                    "temperature": 0.7
+                "safetySettings": [
+                    {
+                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        "threshold": "BLOCK_ONLY_HIGH"
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "topK": 40,
+                    "topP": 0.95,
+                    "maxOutputTokens": 800
                 }
             }
             
@@ -249,9 +276,20 @@ def processCommand(c, speak_enabled=True):
                     response_text = "Error: No response candidates found"
                     print("Error: No candidates in response")
             else:
-                response_text = f"API Error: {response.status_code}"
-                print(f"API error: {response.status_code}")
-                print(f"Response: {response.text}")
+                try:
+                    error_info = response.json()
+                    error_message = error_info.get('error', {}).get('message', 'Unknown error')
+                    error_code = error_info.get('error', {}).get('code', 'Unknown code')
+                    response_text = f"API Error {response.status_code}: {error_code} - {error_message}"
+                    if "weather" in c.lower():
+                        response_text = "I'm sorry, I don't have access to real-time weather data. You could check a weather website or app like Weather.com, AccuWeather, or your phone's built-in weather app for current conditions."
+                    print(f"API error: {response.status_code}")
+                    print(f"Error details: {error_message}")
+                except Exception as parse_error:
+                    response_text = f"API Error {response.status_code}: Could not parse error response"
+                    print(f"API error: {response.status_code}")
+                    print(f"Response parsing error: {parse_error}")
+                print(f"Raw response: {response.text[:500]}")
             
             if speak_enabled and response_text:
                 speak(response_text)

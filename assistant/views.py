@@ -72,16 +72,25 @@ def test_gemini(request):
             "contents": [
                 {
                     "role": "user",
-                    "parts":[{"text": query}]
+                    "parts": [{"text": query}]
                 }
             ],
-            "system_instruction": {
+            "systemInstruction": {
                 "parts": [
-                    {"text": "You are Ramesh, a helpful personal assistant. Your name is Ramesh. When asked about your identity, always introduce yourself as Ramesh, not as a language model, AI, or any other name like Bard or Gemini. You are created to assist users with various tasks including answering questions, providing information, and performing other helpful actions."}
+                    {"text": "You are Ramesh, a helpful personal assistant. Your name is Ramesh. When asked about your identity, always introduce yourself as Ramesh, not as a language model, AI, or any other name like Bard or Gemini. You are created to assist users with various tasks including answering questions, providing information, and performing other helpful actions. When asked about the weather, explain that you don't have access to real-time weather data, but you can suggest weather websites or apps the user can check."}
                 ]
             },
-            "generation_config": {
-                "temperature": 0.7
+            "safetySettings": [
+                {
+                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    "threshold": "BLOCK_ONLY_HIGH"
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.7,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 800
             }
         }
         
@@ -130,11 +139,35 @@ def test_gemini(request):
                     'debug': debug_info
                 })
         else:
-            return JsonResponse({
-                'error': f'API Error: {response.status_code}',
-                'response_text': response.text,
-                'debug': debug_info
-            })
+            try:
+                error_info = response.json()
+                error_message = error_info.get('error', {}).get('message', 'Unknown error')
+                error_code = error_info.get('error', {}).get('code', 'Unknown code')
+                error_text = f"API Error {response.status_code}: {error_code} - {error_message}"
+                
+                # Handle weather-related queries specially
+                if "weather" in query.lower():
+                    error_text = "I'm sorry, I don't have access to real-time weather data. You could check a weather website or app like Weather.com, AccuWeather, or your phone's built-in weather app for current conditions."
+                
+                # Add error details to debug info
+                debug_info.update({
+                    'error_code': error_code,
+                    'error_message': error_message,
+                    'raw_response': response.text[:1000]
+                })
+                
+                return JsonResponse({
+                    'error': error_text,
+                    'debug': debug_info
+                })
+            except Exception as parse_error:
+                # If we can't parse the error JSON
+                return JsonResponse({
+                    'error': f'API Error {response.status_code}: Could not parse error response',
+                    'parse_error': str(parse_error),
+                    'response_text': response.text[:1000],
+                    'debug': debug_info
+                })
     
     except Exception as e:
         return JsonResponse({
