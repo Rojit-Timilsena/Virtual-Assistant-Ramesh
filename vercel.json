@@ -1,0 +1,15 @@
+{
+  "builds": [
+    {
+      "src": "jarvis_web/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "jarvis_web/wsgi.py"
+    }
+  ],
+  "postinstall": "python manage.py collectstatic --noinput"
+}
