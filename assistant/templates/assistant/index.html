@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ramesh Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6a11cb;
+      --primary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      --dark: #121212;
+      --text: #f0f0f0;
+      --text-secondary: #b0b0b0;
+      --surface: #1e1e1e;
+      --surface-light: #2d2d2d;
+      --success: #00c853;
+      --error: #ff5252;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+    
+    #mic-container {
+      position: relative;
+      margin: 1.5rem 0;
+    }
+    
+    #mic-button {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      font-size: 2rem;
+      cursor: pointer;
+      position: relative;
+      animation: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 4px 12px rgba(106, 17, 203, 0.3);
+    }
+    
+    #mic-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(106, 17, 203, 0.4);
+    }
+    
+    #mic-button.listening {
+      animation: pulse 1.5s infinite;
+      background: var(--success);
+      background: linear-gradient(135deg, #00c853 0%, #69f0ae 100%);
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 4px 12px rgba(0, 200, 83, 0.3); }
+      50% { transform: scale(1.1); box-shadow: 0 4px 20px rgba(0, 200, 83, 0.5); }
+      100% { transform: scale(1); box-shadow: 0 4px 12px rgba(0, 200, 83, 0.3); }
+    }
+    
+    #status {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: var(--text-secondary);
+      text-align: center;
+      min-height: 1.5rem;
+    }
+    
+    #response-container {
+      margin-top: 2rem;
+      width: 100%;
+      background: var(--surface-light);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+    
+    #response {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+    
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    
+    .footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .footer a:hover {
+      color: var(--text);
+      text-decoration: underline;
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.5rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      #mic-button {
+        width: 70px;
+        height: 70px;
+        font-size: 1.7rem;
+      }
+      
+      #response {
+        font-size: 1rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .container {
+        padding: 1.2rem;
+      }
+      
+      h1 {
+        font-size: 1.7rem;
+        margin-bottom: 1.5rem;
+      }
+      
+      #mic-button {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+      }
+      
+      #response-container {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎙️ Talk to Ramesh</h1>
+    
+    <div id="mic-container">
+      <button id="mic-button" onclick="startListening()">🎤</button>
+    </div>
+    
+    <p id="status">Click the mic to start</p>
+    
+    <div id="response-container">
+      <div id="response">How can I assist you today?</div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <a href="/debug/" id="debug-link">Debug Tools</a>
+  </div>
+
+  <script>
+    let isListening = false;
+
+    function startListening() {
+      if (isListening) return;  // Prevent multiple starts
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Speech recognition is not supported in this browser.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      const micButton = document.getElementById("mic-button");
+      const status = document.getElementById("status");
+
+      isListening = true;
+      micButton.classList.add("listening");
+      status.textContent = "Listening...";
+
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const command = event.results[0][0].transcript;
+        status.textContent = `You said: "${command}"`;
+        isListening = false;
+        micButton.classList.remove("listening");
+        sendCommand(command);
+      };
+
+      recognition.onerror = function(event) {
+        status.textContent = "Error: " + event.error;
+        isListening = false;
+        micButton.classList.remove("listening");
+      };
+
+      recognition.onend = function() {
+        if (isListening) {
+          status.textContent = "Listening ended.";
+          micButton.classList.remove("listening");
+          isListening = false;
+        }
+      };
+    }
+
+    function sendCommand(command) {
+      // Update UI to show processing
+      document.getElementById("status").textContent = `Processing: "${command}"`;
+      document.getElementById("response").innerText = "Thinking...";
+      
+      // Send the command to the backend
+      fetch('/jarvis/?command=' + encodeURIComponent(command), {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Response received:", data);
+        
+        // Handle the response
+        let output = "";
+        if (data.response) {
+          output = data.response;
+          document.getElementById("status").textContent = "Ready";
+        } else if (data.error) {
+          output = "Error: " + data.error;
+          document.getElementById("status").textContent = "Error occurred";
+        } else {
+          output = "No valid response received";
+          document.getElementById("status").textContent = "No response";
+        }
+        
+        // Update UI with response
+        document.getElementById("response").innerText = output;
+        
+        // Speak the response if it's not an error
+        if (data.response) {
+          speak(data.response);
+        }
+      })
+      .catch(error => {
+        console.error('Fetch error:', error);
+        document.getElementById("response").innerText = "Error: " + error.message;
+        document.getElementById("status").textContent = "Connection failed";
+      });
+    }
+
+    function speak(text) {
+      if (!text) return;
+      
+      const synth = window.speechSynthesis;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 1.2; // Speed up speech a bit
+      synth.speak(utterance);
+    }
+  </script>
+</body>
+</html>

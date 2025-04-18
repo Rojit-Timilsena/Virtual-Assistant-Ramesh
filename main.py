@@ -101,7 +101,7 @@ def processCommand(c):
 
 if __name__ == "__main__":
     configure()
-    speak("Initializing Jarvis...")
+    speak("Initializing Ramesh...")
     while True:
         # Listen for the wake command
         print("recognizing")
@@ -113,11 +113,11 @@ if __name__ == "__main__":
                 audio = recognizer.listen(source, timeout=4)
             
             command = recognizer.recognize_google(audio)
-            if "jarvis" in command.lower():
+            if "ramesh" in command.lower():
                 speak("Haw jur")
                 # Listen for command
                 with sr.Microphone() as source:
-                    print("Jarvis Active")
+                    print("Ramesh Active")
                     audio = recognizer.listen(source)
                     command = recognizer.recognize_google(audio)
                     processCommand(command)

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini API Debug Tool</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6a11cb;
+      --primary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      --dark: #121212;
+      --text: #f0f0f0;
+      --text-secondary: #b0b0b0;
+      --surface: #1e1e1e;
+      --surface-light: #2d2d2d;
+      --success: #00c853;
+      --error: #ff5252;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+      text-align: center;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .input-group {
+      display: flex;
+      margin-bottom: 1.5rem;
+      gap: 10px;
+    }
+    
+    #query-input {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: var(--surface-light);
+      color: var(--text);
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    #test-button {
+      padding: 10px 20px;
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    #test-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(106, 17, 203, 0.3);
+    }
+    
+    .result-container {
+      background: var(--surface-light);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .section-title {
+      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+      color: var(--primary);
+      font-weight: 500;
+    }
+    
+    #result {
+      font-size: 1rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    #debug-info {
+      font-family: monospace;
+      font-size: 14px;
+      background: #252525;
+      border-radius: 8px;
+      padding: 15px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .success {
+      color: var(--success);
+      font-weight: 600;
+    }
+    
+    .error {
+      color: var(--error);
+      font-weight: 600;
+    }
+    
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+    
+    .footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .footer a:hover {
+      color: var(--text);
+      text-decoration: underline;
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.5rem;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .input-group {
+        flex-direction: column;
+      }
+      
+      #test-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gemini API Debug Tool</h1>
+    
+    <div class="input-group">
+      <input 
+        type="text" 
+        id="query-input" 
+        placeholder="Enter a test query..." 
+        value="What is your name? Tell me about yourself."
+      />
+      <button id="test-button" onclick="testGemini()">Test API</button>
+    </div>
+    
+    <div class="result-container">
+      <div class="section-title">Response</div>
+      <div id="result">Results will appear here...</div>
+    </div>
+    
+    <div class="result-container">
+      <div class="section-title">Debug Information</div>
+      <div id="debug-info">Debug info will appear here...</div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <a href="/">Back to Assistant</a>
+  </div>
+  
+  <script>
+    function testGemini() {
+      const query = document.getElementById('query-input').value;
+      const resultDiv = document.getElementById('result');
+      const debugDiv = document.getElementById('debug-info');
+      
+      resultDiv.innerHTML = "Testing Gemini API...";
+      resultDiv.className = "";
+      
+      fetch(`/test_gemini/?query=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("Response:", data);
+          
+          if (data.success) {
+            resultDiv.innerHTML = `<span class="success">✓ Success:</span>\n${data.response}`;
+          } else {
+            resultDiv.innerHTML = `<span class="error">✗ Error:</span>\n${data.error}`;
+            
+            if (data.traceback) {
+              resultDiv.innerHTML += `\n\nTraceback:\n${data.traceback}`;
+            }
+          }
+          
+          // Display debug info
+          let debugHtml = "";
+          for (const [key, value] of Object.entries(data)) {
+            if (key !== "response" && key !== "traceback") {
+              if (typeof value === 'object' && value !== null) {
+                debugHtml += `${key}: ${JSON.stringify(value, null, 2)}\n`;
+              } else {
+                debugHtml += `${key}: ${value}\n`;
+              }
+            }
+          }
+          
+          debugDiv.innerHTML = debugHtml || "No debug information available";
+        })
+        .catch(error => {
+          resultDiv.innerHTML = `<span class="error">✗ Fetch Error:</span>\n${error.message}`;
+          resultDiv.className = "error";
+        });
+    }
+    
+    // Auto-run on page load
+    window.onload = function() {
+      testGemini();
+    };
+  </script>
+</body>
+</html> 
